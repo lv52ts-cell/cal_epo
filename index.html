@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="cs" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalkulačka Epoxidu & Temperační Cyklus pro Infuzi</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            400: '#38bdf8',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                        },
+                        amber: {
+                            400: '#fbbf24',
+                            500: '#f59e0b',
+                        },
+                        carbon: {
+                            800: '#18181b',
+                            850: '#121215',
+                            900: '#09090b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- FontAwesome & Google Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        .bg-carbon-pattern {
+            background-color: #09090b;
+            background-image: radial-gradient(#27272a 0.75px, transparent 0.75px), radial-gradient(#27272a 0.75px, #09090b 0.75px);
+            background-size: 24px 24px;
+        }
+        .glass-panel {
+            background: rgba(24, 24, 27, 0.88);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+    </style>
+</head>
+<body class="bg-carbon-pattern text-gray-100 min-h-screen pb-16 antialiased selection:bg-sky-500 selection:text-white">
+
+    <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+        
+        <!-- HEADER -->
+        <header class="flex flex-col md:flex-row md:items-center md:justify-between pb-6 mb-8 border-b border-zinc-800 gap-4">
+            <div class="flex items-center gap-3.5">
+                <div class="p-3 bg-sky-500/10 border border-sky-500/30 rounded-xl text-sky-400">
+                    <i class="fa-solid fa-flask-vial text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
+                        Infusion Resin & Heat-Cure Calc
+                        <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-400 border border-sky-500/30">v5.0 PRO</span>
+                    </h1>
+                    <p class="text-xs sm:text-sm text-zinc-400 mt-0.5">Výpočet epoxidu u vakuové infuze + Temperační proces pro max. tepelnou odolnost ($T_g$)</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 self-start md:self-auto flex-wrap">
+                <button onclick="openPresetsModal()" class="px-3.5 py-2 text-xs font-semibold text-sky-400 hover:text-white bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 rounded-lg transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-book-bookmark"></i>
+                    Knihovna materiálů
+                </button>
+                <button onclick="window.print()" class="px-3.5 py-2 text-xs font-medium text-zinc-300 hover:text-white bg-zinc-800 hover:bg-zinc-700 border border-zinc-700/80 rounded-lg transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-print"></i>
+                    Tisknout návod
+                </button>
+                <button onclick="resetDefaults()" class="px-3.5 py-2 text-xs font-medium text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 border border-zinc-700/80 rounded-lg transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-rotate-right"></i>
+                    Obnovit
+                </button>
+            </div>
+        </header>
+
+        <!-- MAIN GRID LAYOUT -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+            <!-- LEFT & CENTER COLUMN (INPUTS & TABLES) -->
+            <div class="lg:col-span-7 space-y-6">
+
+                <!-- 1. VÝZTUŽNÉ TKANINY -->
+                <section class="glass-panel p-5 sm:p-6 rounded-2xl shadow-xl border-zinc-800">
+                    <div class="flex items-center justify-between mb-2">
+                        <h2 class="text-lg font-bold text-white flex items-center gap-2.5">
+                            <i class="fa-solid fa-layer-group text-sky-400"></i>
+                            1. Výztužné tkaniny (Uhlík, Sklo, Aramid)
+                        </h2>
+                        <button onclick="addFabricRow()" class="px-3 py-1.5 text-xs font-semibold bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 rounded-lg transition-all flex items-center gap-1.5">
+                            <i class="fa-solid fa-plus"></i> Přidat střih
+                        </button>
+                    </div>
+                    <p class="text-xs text-zinc-400 mb-4">Zadejte rozměry vystřižených kusů výztuže včetně přesahů přes hranu formy.</p>
+
+                    <div id="fabric-rows-container" class="space-y-3">
+                        <!-- Dynamic fabric rows -->
+                    </div>
+
+                    <div class="mt-4 pt-3 border-t border-zinc-800 flex flex-wrap justify-between items-center gap-2 px-1 text-xs">
+                        <span class="text-zinc-400">Celková plocha střihů: <strong class="text-white font-mono" id="stat-fabric-area">0.000</strong> m²</span>
+                        <span class="text-zinc-400">Hmotnost výztuže: <strong class="text-sky-400 font-mono font-bold" id="stat-fabric-weight">0</strong> g</span>
+                    </div>
+                </section>
+
+                <!-- 2. POMOCNÉ MATERIÁLY -->
+                <section class="glass-panel p-5 sm:p-6 rounded-2xl shadow-xl border-zinc-800">
+                    <div class="flex items-center justify-between mb-2">
+                        <h2 class="text-lg font-bold text-white flex items-center gap-2.5">
+                            <i class="fa-solid fa-rug text-sky-400"></i>
+                            2. Pomocné materiály (Peel Ply & Rozvodová síť)
+                        </h2>
+                        <div class="flex items-center gap-2">
+                            <button onclick="saveCustomAuxPresetPrompt()" class="px-2.5 py-1.5 text-xs font-semibold bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 rounded-lg transition-all flex items-center gap-1.5" title="Uložit poslední vrstvu do knihovny">
+                                <i class="fa-solid fa-floppy-disk text-sky-400"></i> Uložit nový typ
+                            </button>
+                            <button onclick="addAuxRow()" class="px-3 py-1.5 text-xs font-semibold bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 rounded-lg transition-all flex items-center gap-1.5">
+                                <i class="fa-solid fa-plus"></i> Přidat vrstvu
+                            </button>
+                        </div>
+                    </div>
+                    <p class="text-xs text-zinc-400 mb-4">Vyberte si z uložených typů gramáží/nasákavostí nebo zadejte vlastní. Uložené předvolby zůstávají trvale dostupné v paměti vášho prohlížeče.</p>
+
+                    <div id="aux-rows-container" class="space-y-3">
+                        <!-- Dynamic aux rows -->
+                    </div>
+
+                    <div class="mt-4 pt-3 border-t border-zinc-800 flex flex-wrap justify-between items-center gap-2 px-1 text-xs">
+                        <span class="text-zinc-400">Plocha pomocných vrstev: <strong class="text-white font-mono" id="stat-aux-area">0.000</strong> m²</span>
+                        <span class="text-zinc-400">Spotřeba v pomocných vrstvách: <strong class="text-sky-400 font-mono font-bold" id="stat-aux-weight">0</strong> g</span>
+                    </div>
+                </section>
+
+                <!-- 3. VOLBA PRYSKYŘICE & MÍCHACÍ POMĚR -->
+                <section class="glass-panel p-5 sm:p-6 rounded-2xl shadow-xl border-zinc-800">
+                    <h2 class="text-lg font-bold text-white flex items-center gap-2.5 mb-4">
+                        <i class="fa-solid fa-vial-circle-check text-sky-400"></i>
+                        3. Volba Pryskyřice & Tužidla + Míchací poměr
+                    </h2>
+
+                    <div class="space-y-4">
+                        <!-- Preset selector -->
+                        <div class="bg-zinc-900/90 p-4 rounded-xl border border-zinc-800">
+                            <label class="block text-xs font-semibold text-sky-400 uppercase tracking-wider mb-2">
+                                Vyberte systém pryskyřice / Tužidla (Preset)
+                            </label>
+                            <select id="resin-preset-select" onchange="selectResinPreset()" 
+                                    class="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-white font-medium focus:ring-2 focus:ring-sky-500 outline-none text-sm">
+                                <!-- Options dynamically rendered -->
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <!-- Resin Name / Hardener Name -->
+                            <div class="bg-zinc-900/60 p-3.5 rounded-xl border border-zinc-800/80 space-y-2">
+                                <div>
+                                    <label class="block text-[11px] font-medium text-zinc-400 uppercase">Název Pryskyřice (Složka A)</label>
+                                    <input type="text" id="input-resin-name" oninput="updateCustomResinInfo()" 
+                                           class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-white font-medium text-xs focus:border-sky-500 outline-none mt-1">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-medium text-zinc-400 uppercase">Název Tužidla (Složka B)</label>
+                                    <input type="text" id="input-hardener-name" oninput="updateCustomResinInfo()" 
+                                           class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-white font-medium text-xs focus:border-sky-500 outline-none mt-1">
+                                </div>
+                            </div>
+
+                            <!-- Mix ratio A:B -->
+                            <div class="bg-zinc-900/60 p-3.5 rounded-xl border border-zinc-800/80">
+                                <label class="block text-[11px] font-medium text-zinc-400 uppercase mb-2">
+                                    Hmotnostní poměr míchání (A : B)
+                                </label>
+                                <div class="flex items-center gap-2">
+                                    <div class="relative flex-1">
+                                        <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-zinc-400">A</span>
+                                        <input type="number" id="ratio-a" value="100" step="1" min="1" oninput="calculate()" 
+                                               class="w-full bg-zinc-950 border border-zinc-800 rounded-lg pl-7 pr-2 py-1.5 text-white text-center font-bold focus:ring-2 focus:ring-sky-500 outline-none">
+                                    </div>
+                                    <span class="text-zinc-500 font-bold">:</span>
+                                    <div class="relative flex-1">
+                                        <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-zinc-400">B</span>
+                                        <input type="number" id="ratio-b" value="23" step="0.5" min="0.1" oninput="calculate()" 
+                                               class="w-full bg-zinc-950 border border-zinc-800 rounded-lg pl-7 pr-2 py-1.5 text-white text-center font-bold focus:ring-2 focus:ring-sky-500 outline-none">
+                                    </div>
+                                </div>
+                                <span class="text-[10px] text-zinc-500 mt-2 block">Např. LH 288 / H 512: 100g A : 23g B</span>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <!-- Dead Volume / Waste -->
+                            <div class="bg-zinc-900/60 p-3.5 rounded-xl border border-zinc-800/80">
+                                <label class="block text-[11px] font-medium text-zinc-400 uppercase mb-1">
+                                    Rezerva (Lapač, Hadice, Nádoba)
+                                </label>
+                                <div class="relative">
+                                    <input type="number" id="input-dead-volume" step="10" min="0" value="100" oninput="calculate()" 
+                                           class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-white font-medium focus:ring-2 focus:ring-sky-500 outline-none pr-12">
+                                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-zinc-400">g</span>
+                                </div>
+                                <span class="text-[10px] text-zinc-500 mt-1 block">Standardně cca +100g až 150g</span>
+                            </div>
+
+                            <!-- Resin info stats (Pot life & Max Tg) -->
+                            <div class="bg-zinc-900/60 p-3.5 rounded-xl border border-zinc-800/80 flex flex-col justify-center">
+                                <div class="flex justify-between items-center text-xs">
+                                    <span class="text-zinc-400">Doba zpracovatelnosti (Pot-Life):</span>
+                                    <span class="font-semibold text-amber-400" id="info-pot-life">cca 210 min</span>
+                                </div>
+                                <div class="flex justify-between items-center text-xs mt-2 pt-2 border-t border-zinc-800">
+                                    <span class="text-zinc-400">Dosažitelná $T_g$ (Teplotní odolnost):</span>
+                                    <span class="font-semibold text-sky-400" id="info-max-tg">až 110 °C</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4. VYTVRZOVACÍ A TEMPERAČNÍ PROCES (MAX TEPLOTA / TG) -->
+                <section class="glass-panel p-5 sm:p-6 rounded-2xl shadow-xl border-zinc-800">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                        <div>
+                            <h2 class="text-lg font-bold text-white flex items-center gap-2.5">
+                                <i class="fa-solid fa-temperature-arrow-up text-amber-400"></i>
+                                4. Vytvrzovací a Temperační Cyklus (Max $T_g$)
+                            </h2>
+                            <p class="text-xs text-zinc-400 mt-0.5">Doporučený postup pro dosažení plné chemické a tepelné odolnosti vybraného systému.</p>
+                        </div>
+                        <button onclick="addCureStep()" class="px-3 py-1.5 text-xs font-semibold bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-lg transition-all flex items-center gap-1.5 self-start sm:self-auto">
+                            <i class="fa-solid fa-plus"></i> Přidat krok
+                        </button>
+                    </div>
+
+                    <!-- Cure steps table -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse min-w-[550px]">
+                            <thead>
+                                <tr class="border-b border-zinc-800 text-zinc-400 uppercase text-[10px] tracking-wider">
+                                    <th class="py-2 px-2">Fáze / Krok</th>
+                                    <th class="py-2 px-2 text-center">Teplota (°C)</th>
+                                    <th class="py-2 px-2 text-center">Čas (hod)</th>
+                                    <th class="py-2 px-2 text-center">Rampa (°C/h)</th>
+                                    <th class="py-2 px-2">Pokyny / Dosažené $T_g$</th>
+                                    <th class="py-2 px-1 w-8"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="cure-steps-tbody" class="divide-y divide-zinc-800/60">
+                                <!-- Rendered dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start gap-3">
+                        <i class="fa-solid fa-triangle-exclamation text-amber-400 text-base mt-0.5"></i>
+                        <p class="text-[11px] text-amber-200/90 leading-relaxed">
+                            <strong>Důležité pravidlo temperování:</strong> Nikdy neodmoldovávejte díl z formy před ukončením základního vytvrzení při pokojové teplotě. Ohřev musíte provádět pozvolna (max. náběh 15–20 °C/hodina), aby nedošlo k deformaci dílu ani vzniku vnitřního pnutí.
+                        </p>
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- RIGHT COLUMN (RESULTS & WORKSHOP RECIPE CARD) -->
+            <div class="lg:col-span-5">
+                <div class="sticky top-6 space-y-6">
+
+                    <!-- Main Results Card -->
+                    <div class="glass-panel p-6 rounded-2xl shadow-2xl border-sky-500/30 relative overflow-hidden">
+                        <div class="absolute -right-10 -top-10 w-40 h-40 bg-sky-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                        <h2 class="text-xs font-bold uppercase tracking-wider text-sky-400 mb-1">
+                            Celkem epoxidu k namíchání
+                        </h2>
+                        <div class="flex items-baseline gap-2 mb-6">
+                            <span id="final-total-resin" class="text-5xl font-black text-white tracking-tight font-mono">0</span>
+                            <span class="text-2xl font-bold text-sky-400">g</span>
+                        </div>
+
+                        <!-- Precision Mix Amounts -->
+                        <div class="bg-zinc-950/90 rounded-xl p-4 border border-zinc-800 space-y-3 mb-6">
+                            <div class="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1 flex items-center justify-between">
+                                <span>Navážka na váhu (Složka A + B)</span>
+                                <i class="fa-solid fa-scale-balanced text-sky-400"></i>
+                            </div>
+                            
+                            <div class="flex items-center justify-between p-3 bg-zinc-900/90 rounded-lg border border-zinc-800">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-3.5 h-3.5 rounded-full bg-sky-400 shadow-sm shadow-sky-500"></div>
+                                    <div>
+                                        <span class="text-xs font-bold text-white block" id="disp-part-a-name">Složka A (Pryskyřice)</span>
+                                        <span class="text-[10px] text-zinc-400">Pryskyřičný základ</span>
+                                    </div>
+                                </div>
+                                <span class="text-lg font-extrabold text-white font-mono"><span id="mix-part-a">0</span> g</span>
+                            </div>
+
+                            <div class="flex items-center justify-between p-3 bg-zinc-900/90 rounded-lg border border-zinc-800">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-3.5 h-3.5 rounded-full bg-emerald-400 shadow-sm shadow-emerald-500"></div>
+                                    <div>
+                                        <span class="text-xs font-bold text-white block" id="disp-part-b-name">Složka B (Tužidlo)</span>
+                                        <span class="text-[10px] text-zinc-400">Reaktivní tužidlo</span>
+                                    </div>
+                                </div>
+                                <span class="text-lg font-extrabold text-white font-mono"><span id="mix-part-b">0</span> g</span>
+                            </div>
+                        </div>
+
+                        <!-- Step-by-step breakdown according to the formula -->
+                        <div class="border-t border-zinc-800 pt-4 space-y-2 text-xs">
+                            <h3 class="text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                                <i class="fa-solid fa-calculator text-sky-400"></i>
+                                Rozpad podle vzorce (60:40)
+                            </h3>
+
+                            <div class="flex justify-between items-center text-zinc-300">
+                                <span>Celková hmotnost výztuže:</span>
+                                <span class="font-mono font-medium text-white"><span id="step-reinforcement-weight">0</span> g</span>
+                            </div>
+
+                            <div class="flex justify-between items-center text-zinc-300">
+                                <span>Děleno 1.5 (Pryskyřice na tkaninu):</span>
+                                <span class="font-mono font-medium text-white"><span id="step-resin-reinforcement">0</span> g</span>
+                            </div>
+
+                            <div class="flex justify-between items-center text-zinc-300">
+                                <span>Peel Ply & Rozvodová síť:</span>
+                                <span class="font-mono font-medium text-white"><span id="step-aux-weight">0</span> g</span>
+                            </div>
+
+                            <div class="flex justify-between items-center text-sky-400 font-semibold pt-1 border-t border-zinc-800/80">
+                                <span>Pryskyřice na komponent:</span>
+                                <span class="font-mono font-bold"><span id="step-component-resin">0</span> g</span>
+                            </div>
+
+                            <div class="flex justify-between items-center text-zinc-300">
+                                <span>+ Rezerva (hadice & lapač):</span>
+                                <span class="font-mono font-medium text-white">+<span id="step-dead-volume">100</span> g</span>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Workshop printable label summary -->
+                    <div class="glass-panel p-5 rounded-2xl border-zinc-800 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-2">
+                                <i class="fa-solid fa-clipboard-check text-emerald-400"></i>
+                                Štítek do dílny k váze
+                            </h3>
+                            <button onclick="copyRecipeToClipboard()" class="text-[11px] text-sky-400 hover:text-sky-300 font-medium flex items-center gap-1">
+                                <i class="fa-regular fa-copy"></i> Kopírovat text
+                            </button>
+                        </div>
+
+                        <div class="bg-zinc-950 p-3.5 rounded-xl border border-zinc-800 text-xs font-mono leading-relaxed text-zinc-300 space-y-1">
+                            <div class="text-sky-400 font-bold border-b border-zinc-800 pb-1 mb-2">INFUSION RESIN RECIPE</div>
+                            <div>Pryskyřice: <span id="label-resin-system" class="text-white font-bold">-</span></div>
+                            <div>Celková hmotnost: <strong class="text-white"><span id="label-total-weight">0</span>g</strong></div>
+                            <div class="text-emerald-400 font-bold mt-1">Složka A (Pryskyřice): <span id="label-part-a">0</span>g</div>
+                            <div class="text-emerald-400 font-bold">Složka B (Tužidlo): <span id="label-part-b">0</span>g</div>
+                            <div class="border-t border-zinc-800 pt-1 mt-2 text-[10px] text-zinc-400">
+                                Max $T_g$: <span id="label-max-tg" class="text-amber-400 font-bold">-</span> | Pot life: <span id="label-pot-life">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- PRESETS MANAGEMENT MODAL -->
+    <div id="presets-modal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass-panel bg-zinc-900 border border-zinc-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between pb-4 border-b border-zinc-800 mb-5">
+                <div class="flex items-center gap-2.5">
+                    <i class="fa-solid fa-book-bookmark text-sky-400 text-xl"></i>
+                    <h3 class="text-lg font-bold text-white">Knihovna uložených materiálů a pryskyřic</h3>
+                </div>
+                <button onclick="closePresetsModal()" class="text-zinc-400 hover:text-white text-lg p-1">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- TAB HEADERS -->
+            <div class="flex border-b border-zinc-800 mb-4 gap-4">
+                <button id="modal-tab-aux" onclick="switchModalTab('aux')" class="pb-2 border-b-2 border-sky-500 text-sky-400 font-semibold text-sm">
+                    Pomocné materiály
+                </button>
+                <button id="modal-tab-resin" onclick="switchModalTab('resin')" class="pb-2 border-b-2 border-transparent text-zinc-400 hover:text-white font-semibold text-sm">
+                    Pryskyřičné systémy
+                </button>
+            </div>
+
+            <!-- AUX PRESETS CONTENT -->
+            <div id="modal-content-aux" class="space-y-4">
+                <div class="bg-zinc-950 p-3.5 rounded-xl border border-zinc-800 space-y-3">
+                    <h4 class="text-xs font-bold text-sky-400 uppercase tracking-wider">Přidat nový pomocný materiál</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                        <input type="text" id="new-aux-name" placeholder="Název (např. Peel Ply 83g)" class="bg-zinc-900 border border-zinc-700 rounded px-2.5 py-1.5 text-white outline-none focus:border-sky-500">
+                        <input type="number" id="new-aux-grammage" placeholder="Nasákavost (g/m²)" class="bg-zinc-900 border border-zinc-700 rounded px-2.5 py-1.5 text-white outline-none focus:border-sky-500 font-mono">
+                        <button onclick="addAuxPresetFromModal()" class="bg-sky-500 hover:bg-sky-600 text-white font-semibold rounded px-3 py-1.5 transition-all">
+                            Uložit materiál
+                        </button>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <h4 class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Seznam uložených materiálů</h4>
+                    <div id="modal-aux-list" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                        <!-- Rendered dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- RESIN PRESETS CONTENT -->
+            <div id="modal-content-resin" class="space-y-4 hidden">
+                <div class="bg-zinc-950 p-3.5 rounded-xl border border-zinc-800 space-y-3">
+                    <h4 class="text-xs font-bold text-sky-400 uppercase tracking-wider">Uložit aktuálně nastavený systém pryskyřice</h4>
+                    <p class="text-xs text-zinc-400">Uloží se název pryskyřice, tužidla, míchací poměr i nastavený temperační cyklus.</p>
+                    <button onclick="saveCurrentResinAsPreset()" class="bg-sky-500 hover:bg-sky-600 text-white font-semibold text-xs rounded px-3 py-2 transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-plus"></i> Uložit aktuální pryskyřici do knihovny
+                    </button>
+                </div>
+
+                <div class="space-y-2">
+                    <h4 class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Seznam uložených systémů</h4>
+                    <div id="modal-resin-list" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                        <!-- Rendered dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-zinc-800 flex justify-between items-center text-xs">
+                <span class="text-zinc-500">Data jsou bezpečně uložena v paměti vášho prohlížeče.</span>
+                <button onclick="closePresetsModal()" class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-all font-medium">
+                    Zavřít
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT CORE LOGIC -->
+    <script>
+        // Default auxiliary presets library including user-requested items
+        const defaultAuxPresets = [
+            { id: 'peel-ply-83', name: 'Strhávací tkanina (Peel Ply)', grammage: 83, isDefault: true },
+            { id: 'mesh-om70', name: 'Rozvodná síťka OM 70', grammage: 180, isDefault: true },
+            { id: 'peel-ply-300', name: 'Strhávací tkanina (Silná)', grammage: 300, isDefault: true },
+            { id: 'mesh-std', name: 'Rozvodová síť - Standardní (zelená/modrá)', grammage: 400, isDefault: true },
+            { id: 'mesh-heavy', name: 'Rozvodová síť - Vysokoprůtoková (černá)', grammage: 600, isDefault: true },
+            { id: 'fleece', name: 'Odvzdušňovací rouno / plsť', grammage: 250, isDefault: true }
+        ];
+
+        let auxPresets = [];
+
+        const defaultResinPresets = [
+            {
+                id: 'lh288-h512',
+                name: 'Havel LH 288 / H 512 (Standard Infuze)',
+                resinName: 'Havel LH 288',
+                hardenerName: 'Havel H 512',
+                ratioA: 100,
+                ratioB: 23,
+                potLife: 'cca 210 min',
+                maxTg: 'až 110 °C',
+                isDefault: true,
+                cureSteps: [
+                    { phase: '1. Základní vytvrzení', temp: 25, duration: 12, ramp: 0, notes: 'Základní vytvrzení ve formě při P.T.', tg: '40 °C' },
+                    { phase: '2. Temperační krok 1', temp: 50, duration: 12, ramp: 120, notes: 'Rampa max ±2°C/min (120°C/h)', tg: '65 °C' },
+                    { phase: '3. Temperační krok 2', temp: 80, duration: 6, ramp: 120, notes: 'Rampa max ±2°C/min (120°C/h)', tg: '90 °C' },
+                    { phase: '4. Finální doytvrzení', temp: 110, duration: 3, ramp: 120, notes: 'Maximalizace síťování a Tg', tg: '110 °C' }
+                ]
+            },
+            {
+                id: 'cr122-ch122',
+                name: 'Biresin CR122 / CH122-3',
+                resinName: 'Biresin CR122',
+                hardenerName: 'Biresin CH122-3',
+                ratioA: 100,
+                ratioB: 30,
+                potLife: 'cca 180 min',
+                maxTg: 'až 120 °C',
+                isDefault: true,
+                cureSteps: [
+                    { phase: '1. Pokojová teplota', temp: 23, duration: 24, ramp: 0, notes: 'Vytvrzení ve formě', tg: '45 °C' },
+                    { phase: '2. Temperace Krok 1', temp: 60, duration: 15, ramp: 15, notes: 'Rampa 15°C/h', tg: '75 °C' },
+                    { phase: '3. Temperace Krok 2', temp: 100, duration: 10, ramp: 20, notes: 'Dosáhnutí max. vlastností', tg: '120 °C' }
+                ]
+            },
+            {
+                id: 'sr1710-sd8822',
+                name: 'Sicomin SR 1710 / SD 8822',
+                resinName: 'Sicomin SR 1710',
+                hardenerName: 'Sicomin SD 8822',
+                ratioA: 100,
+                ratioB: 31,
+                potLife: 'cca 200 min',
+                maxTg: 'až 100 °C',
+                isDefault: true,
+                cureSteps: [
+                    { phase: '1. Vytvrzení', temp: 25, duration: 24, ramp: 0, notes: 'Pokojová teplota', tg: '40 °C' },
+                    { phase: '2. Post-cure 1', temp: 60, duration: 8, ramp: 15, notes: 'Postupné zahřívání', tg: '70 °C' },
+                    { phase: '3. Post-cure 2', temp: 90, duration: 4, ramp: 15, notes: 'Maximální vytvrzení', tg: '100 °C' }
+                ]
+            },
+            {
+                id: 'custom',
+                name: '-- Vlastní systém pryskyřice --',
+                resinName: 'Pryskyřice A',
+                hardenerName: 'Tužidlo B',
+                ratioA: 100,
+                ratioB: 23,
+                potLife: 'Dle TL',
+                maxTg: 'Dle TL',
+                isDefault: true,
+                cureSteps: [
+                    { phase: '1. Základní vytvrzení', temp: 25, duration: 24, ramp: 0, notes: 'Ve formě', tg: '-' },
+                    { phase: '2. Temperace', temp: 80, duration: 6, ramp: 15, notes: 'Dle technického listu', tg: '-' }
+                ]
+            }
+        ];
+
+        let resinPresets = [];
+
+        // Initial State
+        let fabrics = [
+            { id: 1, name: 'Kepr 3K 200g (hlavní díl)', length: 60, width: 30, grammage: 200, layers: 3 },
+            { id: 2, name: 'Kepr 3K 200g (pruh)', length: 53, width: 9, grammage: 200, layers: 1 }
+        ];
+
+        let auxiliaries = [
+            { id: 101, name: 'Strhávací tkanina (Peel Ply)', length: 60, width: 30, grammage: 83, layers: 1 },
+            { id: 102, name: 'Rozvodná síťka OM 70', length: 55, width: 25, grammage: 180, layers: 1 }
+        ];
+
+        let cureSteps = [];
+        let nextId = 1000;
+
+        window.onload = function() {
+            loadPresetsFromStorage();
+            initResinSelectOptions();
+            renderFabricRowsDOM();
+            renderAuxRowsDOM();
+            selectResinPreset(); // Select default preset
+            calculate();
+        };
+
+        function loadPresetsFromStorage() {
+            try {
+                const savedAux = localStorage.getItem('infusion_aux_presets_v2');
+                if (savedAux) {
+                    auxPresets = JSON.parse(savedAux);
+                } else {
+                    auxPresets = [...defaultAuxPresets];
+                }
+
+                const savedResins = localStorage.getItem('infusion_resin_presets_v2');
+                if (savedResins) {
+                    resinPresets = JSON.parse(savedResins);
+                } else {
+                    resinPresets = [...defaultResinPresets];
+                }
+            } catch (e) {
+                console.error("Chyba při načítání z LocalStorage:", e);
+                auxPresets = [...defaultAuxPresets];
+                resinPresets = [...defaultResinPresets];
+            }
+        }
+
+        function savePresetsToStorage() {
+            try {
+                localStorage.setItem('infusion_aux_presets_v2', JSON.stringify(auxPresets));
+                localStorage.setItem('infusion_resin_presets_v2', JSON.stringify(resinPresets));
+            } catch (e) {
+                console.error("Chyba při ukládání do LocalStorage:", e);
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+            toast.className = `pointer-events-auto px-4 py-3 rounded-xl border text-xs font-semibold shadow-2xl flex items-center gap-2.5 transition-all transform translate-y-2 opacity-0 ${
+                type === 'success' 
+                    ? 'bg-zinc-900 border-sky-500/50 text-sky-400' 
+                    : 'bg-zinc-900 border-red-500/50 text-red-400'
+            }`;
+
+            toast.innerHTML = `
+                <i class="fa-solid ${type === 'success' ? 'fa-circle-check text-sky-400' : 'fa-circle-exclamation text-red-400'}"></i>
+                <span>${message}</span>
+            `;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function openPresetsModal() {
+            renderModalLists();
+            document.getElementById('presets-modal').classList.remove('hidden');
+        }
+
+        function closePresetsModal() {
+            document.getElementById('presets-modal').classList.add('hidden');
+        }
+
+        function switchModalTab(tab) {
+            const auxBtn = document.getElementById('modal-tab-aux');
+            const resinBtn = document.getElementById('modal-tab-resin');
+            const auxContent = document.getElementById('modal-content-aux');
+            const resinContent = document.getElementById('modal-content-resin');
+
+            if (tab === 'aux') {
+                auxBtn.className = 'pb-2 border-b-2 border-sky-500 text-sky-400 font-semibold text-sm';
+                resinBtn.className = 'pb-2 border-b-2 border-transparent text-zinc-400 hover:text-white font-semibold text-sm';
+                auxContent.classList.remove('hidden');
+                resinContent.classList.add('hidden');
+            } else {
+                resinBtn.className = 'pb-2 border-b-2 border-sky-500 text-sky-400 font-semibold text-sm';
+                auxBtn.className = 'pb-2 border-b-2 border-transparent text-zinc-400 hover:text-white font-semibold text-sm';
+                resinContent.classList.remove('hidden');
+                auxContent.classList.add('hidden');
+            }
+        }
+
+        function renderModalLists() {
+            // Render Aux list
+            const auxListEl = document.getElementById('modal-aux-list');
+            if (auxListEl) {
+                auxListEl.innerHTML = '';
+                auxPresets.forEach((p, idx) => {
+                    const row = document.createElement('div');
+                    row.className = 'flex items-center justify-between p-2.5 bg-zinc-950 border border-zinc-800 rounded-lg text-xs';
+                    row.innerHTML = `
+                        <div class="flex items-center gap-2">
+                            <span class="font-semibold text-white">${p.name}</span>
+                            <span class="text-zinc-400 font-mono">(${p.grammage} g/m²)</span>
+                            ${p.isDefault ? '<span class="text-[10px] bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded">Výchozí</span>' : ''}
+                        </div>
+                        ${!p.isDefault ? `
+                            <button onclick="deleteAuxPreset(${idx})" class="text-zinc-500 hover:text-red-400 transition-colors p-1">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        ` : ''}
+                    `;
+                    auxListEl.appendChild(row);
+                });
+            }
+
+            // Render Resin list
+            const resinListEl = document.getElementById('modal-resin-list');
+            if (resinListEl) {
+                resinListEl.innerHTML = '';
+                resinPresets.forEach((r, idx) => {
+                    const row = document.createElement('div');
+                    row.className = 'flex items-center justify-between p-2.5 bg-zinc-950 border border-zinc-800 rounded-lg text-xs';
+                    row.innerHTML = `
+                        <div class="flex items-center gap-2">
+                            <span class="font-semibold text-white">${r.name}</span>
+                            <span class="text-zinc-400 font-mono">(${r.ratioA}:${r.ratioB})</span>
+                            ${r.isDefault ? '<span class="text-[10px] bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded">Výchozí</span>' : ''}
+                        </div>
+                        ${!r.isDefault ? `
+                            <button onclick="deleteResinPreset(${idx})" class="text-zinc-500 hover:text-red-400 transition-colors p-1">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        ` : ''}
+                    `;
+                    resinListEl.appendChild(row);
+                });
+            }
+        }
+
+        function addAuxPresetFromModal() {
+            const nameEl = document.getElementById('new-aux-name');
+            const grammageEl = document.getElementById('new-aux-grammage');
+
+            const name = nameEl.value.trim();
+            const grammage = parseFloat(grammageEl.value);
+
+            if (!name || isNaN(grammage) || grammage <= 0) {
+                showToast('Zadejte platný název a gramáž materiálu.', 'error');
+                return;
+            }
+
+            const newPreset = {
+                id: 'custom-' + Date.now(),
+                name: name,
+                grammage: grammage,
+                isDefault: false
+            };
+
+            auxPresets.push(newPreset);
+            savePresetsToStorage();
+
+            nameEl.value = '';
+            grammageEl.value = '';
+
+            renderModalLists();
+            renderAuxRowsDOM();
+            showToast(`Materiál "${name}" byl uložen do paměti!`);
+        }
+
+        function deleteAuxPreset(index) {
+            const removed = auxPresets.splice(index, 1);
+            savePresetsToStorage();
+            renderModalLists();
+            renderAuxRowsDOM();
+            if (removed.length > 0) {
+                showToast(`Materiál "${removed[0].name}" byl odstraněn.`);
+            }
+        }
+
+        function saveCustomAuxPresetPrompt() {
+            if (auxiliaries.length === 0) return;
+            const lastAux = auxiliaries[auxiliaries.length - 1];
+            const name = lastAux.name || 'Pomocný materiál';
+            const grammage = lastAux.grammage || 100;
+
+            const newPreset = {
+                id: 'custom-' + Date.now(),
+                name: name,
+                grammage: grammage,
+                isDefault: false
+            };
+
+            auxPresets.push(newPreset);
+            savePresetsToStorage();
+
+            renderAuxRowsDOM();
+            showToast(`Materiál "${name} (${grammage} g/m²)" byl uložen do paměti!`);
+        }
+
+        function saveCurrentResinAsPreset() {
+            const resinName = document.getElementById('input-resin-name').value || 'Pryskyřice';
+            const hardenerName = document.getElementById('input-hardener-name').value || 'Tužidlo';
+            const ratioA = parseFloat(document.getElementById('ratio-a').value) || 100;
+            const ratioB = parseFloat(document.getElementById('ratio-b').value) || 23;
+            const potLife = document.getElementById('info-pot-life').textContent || 'Dle TL';
+            const maxTg = document.getElementById('info-max-tg').textContent || 'Dle TL';
+
+            const fullName = `${resinName} / ${hardenerName}`;
+
+            const newResinPreset = {
+                id: 'custom-resin-' + Date.now(),
+                name: fullName,
+                resinName: resinName,
+                hardenerName: hardenerName,
+                ratioA: ratioA,
+                ratioB: ratioB,
+                potLife: potLife,
+                maxTg: maxTg,
+                isDefault: false,
+                cureSteps: JSON.parse(JSON.stringify(cureSteps))
+            };
+
+            resinPresets.push(newResinPreset);
+            savePresetsToStorage();
+
+            initResinSelectOptions();
+            document.getElementById('resin-preset-select').value = newResinPreset.id;
+            renderModalLists();
+            showToast(`Systém "${fullName}" byl uložen do paměti!`);
+        }
+
+        function deleteResinPreset(index) {
+            const removed = resinPresets.splice(index, 1);
+            savePresetsToStorage();
+            initResinSelectOptions();
+            renderModalLists();
+            if (removed.length > 0) {
+                showToast(`Systém "${removed[0].name}" byl odstraněn.`);
+            }
+        }
+
+        function initResinSelectOptions() {
+            const select = document.getElementById('resin-preset-select');
+            if (!select) return;
+            select.innerHTML = '';
+            resinPresets.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = p.name;
+                select.appendChild(opt);
+            });
+        }
+
+        function selectResinPreset() {
+            const select = document.getElementById('resin-preset-select');
+            if (!select) return;
+            const presetId = select.value;
+            const preset = resinPresets.find(p => p.id === presetId) || resinPresets[0];
+
+            document.getElementById('input-resin-name').value = preset.resinName;
+            document.getElementById('input-hardener-name').value = preset.hardenerName;
+            document.getElementById('ratio-a').value = preset.ratioA;
+            document.getElementById('ratio-b').value = preset.ratioB;
+            document.getElementById('info-pot-life').textContent = preset.potLife;
+            document.getElementById('info-max-tg').textContent = preset.maxTg;
+
+            cureSteps = JSON.parse(JSON.stringify(preset.cureSteps));
+            renderCureStepsDOM();
+            calculate();
+        }
+
+        function updateCustomResinInfo() {
+            calculate();
+        }
+
+        function renderFabricRowsDOM() {
+            const container = document.getElementById('fabric-rows-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            fabrics.forEach((f) => {
+                const card = document.createElement('div');
+                card.id = `fabric-row-${f.id}`;
+                card.className = 'bg-zinc-900/80 p-3.5 rounded-xl border border-zinc-800/80 space-y-3 relative group';
+                
+                card.innerHTML = `
+                    <div class="flex items-center justify-between gap-2">
+                        <input type="text" value="${f.name}" data-id="${f.id}" data-field="name"
+                               placeholder="Název výztuže"
+                               class="fabric-input bg-transparent border-b border-zinc-700 focus:border-sky-500 font-semibold text-sm text-white px-1 py-0.5 outline-none w-full">
+                        <button onclick="removeFabricRow(${f.id})" class="text-zinc-500 hover:text-red-400 p-1 transition-colors">
+                            <i class="fa-solid fa-trash-can text-xs"></i>
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                        <div>
+                            <label class="text-zinc-500 block text-[10px] uppercase font-medium mb-1">Délka (cm)</label>
+                            <input type="number" value="${f.length}" step="0.5" min="0" data-id="${f.id}" data-field="length"
+                                   class="fabric-input w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-center text-white font-mono focus:border-sky-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="text-zinc-500 block text-[10px] uppercase font-medium mb-1">Šířka (cm)</label>
+                            <input type="number" value="${f.width}" step="0.5" min="0" data-id="${f.id}" data-field="width"
+                                   class="fabric-input w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-center text-white font-mono focus:border-sky-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="text-zinc-500 block text-[10px] uppercase font-medium mb-1">Gramáž (g/m²)</label>
+                            <input type="number" value="${f.grammage}" step="10" min="0" data-id="${f.id}" data-field="grammage"
+                                   class="fabric-input w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-center text-white font-mono focus:border-sky-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="text-zinc-500 block text-[10px] uppercase font-medium mb-1">Vrstev / Kusů</label>
+                            <input type="number" value="${f.layers}" step="1" min="1" data-id="${f.id}" data-field="layers"
+                                   class="fabric-input w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-center text-white font-mono focus:border-sky-500 outline-none">
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center pt-2 border-t border-zinc-800/60 text-[11px] text-zinc-400">
+                        <span>Plocha: <strong class="text-zinc-200 font-mono" id="fabric-area-${f.id}">0.000 m²</strong></span>
+                        <span>Hmotnost: <strong class="text-sky-400 font-mono font-bold" id="fabric-weight-${f.id}">0 g</strong></span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            document.querySelectorAll('.fabric-input').forEach(input => {
+                input.addEventListener('input', (e) => {
+                    const id = parseInt(e.target.getAttribute('data-id'));
+                    const field = e.target.getAttribute('data-field');
+                    const value = field === 'name' ? e.target.value : (parseFloat(e.target.value) || 0);
+
+                    const target = fabrics.find(item => item.id === id);
+                    if (target) {
+                        target[field] = value;
+                        calculate();
+                    }
+                });
+            });
+        }
+
+        function addFabricRow() {
+            nextId++;
+            fabrics.push({ id: nextId, name: 'Kepr 3K 200g (nový díl)', length: 50, width: 30, grammage: 200, layers: 1 });
+            renderFabricRowsDOM();
+            calculate();
+        }
+
+        function removeFabricRow(id) {
+            fabrics = fabrics.filter(f => f.id !== id);
+            renderFabricRowsDOM();
+            calculate();
+        }
+
+        function renderAuxRowsDOM() {
+            const container = document.getElementById('aux-rows-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            auxiliaries.forEach((a) => {
+                const card = document.createElement('div');
+                card.id = `aux-row-${a.id}`;
+                card.className = 'bg-zinc-900/80 p-3.5 rounded-xl border border-zinc-800/80 space-y-3 relative group';
+                
+                let presetOptionsHtml = `<option value="">-- Vybrat z uložených gramáží --</option>`;
+                auxPresets.forEach(p => {
+                    const isSelected = p.name === a.name && p.grammage === a.grammage ? 'selected' : '';
+                    presetOptionsHtml += `<option value="${p.id}" ${isSelected}>${p.name} (${p.grammage} g/m²)</option>`;
+                });
+
+                card.innerHTML = `
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div class="flex-1 flex items-center gap-2">
+                            <input type="text" value="${a.name}" data-id="${a.id}" data-field="name" id="aux-name-input-${a.id}"
+                                   placeholder="Název pomocného materiálu"
+                                   class="aux-input bg-transparent border-b border-zinc-700 focus:border-sky-500 font-semibold text-sm text-white px-1 py-0.5 outline-none w-full">
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <select data-id="${a.id}" onchange="applyAuxPreset(${a.id}, this.value)"
+                                    class="bg-zinc-950 border border-zinc-800 text-zinc-300 text-xs rounded-lg px-2 py-1 focus:border-sky-500 outline-none max-w-[200px] truncate">
+                                ${presetOptionsHtml}
+                            </select>
+                            <button onclick="removeAuxRow(${a.id})" class="text-zinc-500 hover:text-red-400 p-1 transition-colors">
+                                <i class="fa-solid fa-trash-can text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                        <div>
+                            <label class="text-zinc-500 block text-[10px] uppercase font-medium mb-1">Délka (cm)</label>
+                            <input type="number" value="${a.length}" step="0.5" min="0" data-id="${a.id}" data-field="length"
+                                   class="aux-input w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-center text-white font-mono focus:border-sky-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="text-zinc-500 block text-[10px] uppercase font-medium mb-1">Šířka (cm)</label>
+                            <input type="number" value="${a.width}" step="0.5" min="0" data-id="${a.id}" data-field="width"
+                                   class="aux-input w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-center text-white font-mono focus:border-sky-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="text-zinc-500 block text-[10px] uppercase font-medium mb-1">Nasákavost (g/m²)</label>
+                            <input type="number" value="${a.grammage}" step="10" min="0" data-id="${a.id}" data-field="grammage" id="aux-grammage-input-${a.id}"
+                                   class="aux-input w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-center text-white font-mono focus:border-sky-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="text-zinc-500 block text-[10px] uppercase font-medium mb-1">Vrstev / Kusů</label>
+                            <input type="number" value="${a.layers}" step="1" min="1" data-id="${a.id}" data-field="layers"
+                                   class="aux-input w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-center text-white font-mono focus:border-sky-500 outline-none">
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center pt-2 border-t border-zinc-800/60 text-[11px] text-zinc-400">
+                        <span>Plocha: <strong class="text-zinc-200 font-mono" id="aux-area-${a.id}">0.000 m²</strong></span>
+                        <span>Spotřeba epoxidu: <strong class="text-sky-400 font-mono font-bold" id="aux-weight-${a.id}">0 g</strong></span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            document.querySelectorAll('.aux-input').forEach(input => {
+                input.addEventListener('input', (e) => {
+                    const id = parseInt(e.target.getAttribute('data-id'));
+                    const field = e.target.getAttribute('data-field');
+                    const value = field === 'name' ? e.target.value : (parseFloat(e.target.value) || 0);
+
+                    const target = auxiliaries.find(item => item.id === id);
+                    if (target) {
+                        target[field] = value;
+                        calculate();
+                    }
+                });
+            });
+        }
+
+        function addAuxRow() {
+            nextId++;
+            auxiliaries.push({ id: nextId, name: 'Pomocný materiál', length: 50, width: 30, grammage: 300, layers: 1 });
+            renderAuxRowsDOM();
+            calculate();
+        }
+
+        function applyAuxPreset(rowId, presetId) {
+            if (!presetId) return;
+            const preset = auxPresets.find(p => p.id === presetId);
+            const auxRow = auxiliaries.find(a => a.id === rowId);
+            if (preset && auxRow) {
+                auxRow.name = preset.name;
+                auxRow.grammage = preset.grammage;
+                
+                const nameInput = document.getElementById(`aux-name-input-${rowId}`);
+                const grammageInput = document.getElementById(`aux-grammage-input-${rowId}`);
+                if (nameInput) nameInput.value = preset.name;
+                if (grammageInput) grammageInput.value = preset.grammage;
+                
+                calculate();
+            }
+        }
+
+        function saveCustomAuxPresetPrompt() {
+            if (auxiliaries.length === 0) return;
+            const lastAux = auxiliaries[auxiliaries.length - 1];
+            const name = lastAux.name || 'Pomocný materiál';
+            const grammage = lastAux.grammage || 300;
+            
+            const presetId = 'custom-' + Date.now();
+            auxPresets.push({
+                id: presetId,
+                name: name,
+                grammage: grammage
+            });
+
+            renderAuxRowsDOM();
+            calculate();
+        }
+
+        function removeAuxRow(id) {
+            auxiliaries = auxiliaries.filter(a => a.id !== id);
+            renderAuxRowsDOM();
+            calculate();
+        }
+
+        function renderCureStepsDOM() {
+            const tbody = document.getElementById('cure-steps-tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            cureSteps.forEach((step, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = 'border-b border-zinc-800/40 hover:bg-zinc-900/30 transition-colors';
+                tr.innerHTML = `
+                    <td class="py-2 px-2 font-medium text-white">
+                        <input type="text" value="${step.phase}" onchange="cureSteps[${idx}].phase=this.value; calculate();" 
+                               class="bg-transparent border-b border-zinc-800 focus:border-amber-400 outline-none text-xs w-full text-white">
+                    </td>
+                    <td class="py-2 px-2 text-center">
+                        <input type="number" value="${step.temp}" onchange="cureSteps[${idx}].temp=parseFloat(this.value)||0; calculate();" 
+                               class="bg-zinc-950 border border-zinc-800 rounded px-1 py-0.5 text-center text-amber-400 font-bold font-mono w-16"> °C
+                    </td>
+                    <td class="py-2 px-2 text-center">
+                        <input type="number" value="${step.duration}" step="0.5" onchange="cureSteps[${idx}].duration=parseFloat(this.value)||0; calculate();" 
+                               class="bg-zinc-950 border border-zinc-800 rounded px-1 py-0.5 text-center text-white font-mono w-14"> h
+                    </td>
+                    <td class="py-2 px-2 text-center text-zinc-400 font-mono">
+                        ${step.ramp > 0 ? step.ramp + ' °C/h' : 'přímý'}
+                    </td>
+                    <td class="py-2 px-2 text-zinc-300">
+                        <div>${step.notes}</div>
+                        <div class="text-[10px] text-amber-400/80">Tg target: ${step.tg}</div>
+                    </td>
+                    <td class="py-2 px-1 text-right">
+                        <button onclick="removeCureStep(${idx})" class="text-zinc-500 hover:text-red-400 transition-colors p-1">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function addCureStep() {
+            cureSteps.push({ phase: 'Temperace Krok', temp: 80, duration: 2, ramp: 15, notes: 'Temperování', tg: '85 °C' });
+            renderCureStepsDOM();
+        }
+
+        function removeCureStep(idx) {
+            cureSteps.splice(idx, 1);
+            renderCureStepsDOM();
+        }
+
+        function resetDefaults() {
+            fabrics = [
+                { id: 1, name: 'Kepr 3K 200g (hlavní díl)', length: 60, width: 30, grammage: 200, layers: 3 },
+                { id: 2, name: 'Kepr 3K 200g (pruh)', length: 53, width: 9, grammage: 200, layers: 1 }
+            ];
+            auxiliaries = [
+                { id: 101, name: 'Peel Ply (Strhávací tkanina)', length: 60, width: 30, grammage: 300, layers: 1 },
+                { id: 102, name: 'Rozvodová síť', length: 55, width: 25, grammage: 400, layers: 1 }
+            ];
+            document.getElementById('input-dead-volume').value = 100;
+            document.getElementById('resin-preset-select').value = 'lh288-h512';
+            renderFabricRowsDOM();
+            renderAuxRowsDOM();
+            selectResinPreset();
+        }
+
+        function calculate() {
+            let totalFabricWeight = 0;
+            let totalFabricArea = 0;
+
+            fabrics.forEach(f => {
+                const singleAreaM2 = (f.length * f.width) / 10000;
+                const totalAreaM2 = singleAreaM2 * f.layers;
+                const weightG = totalAreaM2 * f.grammage;
+
+                totalFabricArea += totalAreaM2;
+                totalFabricWeight += weightG;
+
+                const areaEl = document.getElementById(`fabric-area-${f.id}`);
+                const weightEl = document.getElementById(`fabric-weight-${f.id}`);
+                if (areaEl) areaEl.textContent = `${totalAreaM2.toFixed(3)} m²`;
+                if (weightEl) weightEl.textContent = `${Math.round(weightG)} g`;
+            });
+
+            let totalAuxWeight = 0;
+            let totalAuxArea = 0;
+
+            auxiliaries.forEach(a => {
+                const singleAreaM2 = (a.length * a.width) / 10000;
+                const totalAreaM2 = singleAreaM2 * a.layers;
+                const weightG = totalAreaM2 * a.grammage;
+
+                totalAuxArea += totalAreaM2;
+                totalAuxWeight += weightG;
+
+                const areaEl = document.getElementById(`aux-area-${a.id}`);
+                const weightEl = document.getElementById(`aux-weight-${a.id}`);
+                if (areaEl) areaEl.textContent = `${totalAreaM2.toFixed(3)} m²`;
+                if (weightEl) weightEl.textContent = `${Math.round(weightG)} g`;
+            });
+
+            // Formula: Resin for reinforcement = Fabric Weight / 1.5 (represents 60:40 ratio)
+            const resinForReinforcement = totalFabricWeight / 1.5;
+            const resinForComponent = resinForReinforcement + totalAuxWeight;
+            const deadVolume = parseFloat(document.getElementById('input-dead-volume').value) || 0;
+            const totalResin = resinForComponent + deadVolume;
+
+            // Mix Ratio A:B
+            const ratioA = parseFloat(document.getElementById('ratio-a').value) || 100;
+            const ratioB = parseFloat(document.getElementById('ratio-b').value) || 23;
+            const totalRatio = ratioA + ratioB;
+
+            const partA = totalRatio > 0 ? (totalResin * (ratioA / totalRatio)) : 0;
+            const partB = totalRatio > 0 ? (totalResin * (ratioB / totalRatio)) : 0;
+
+            // Names
+            const resinName = document.getElementById('input-resin-name').value || 'Pryskyřice A';
+            const hardenerName = document.getElementById('input-hardener-name').value || 'Tužidlo B';
+
+            document.getElementById('disp-part-a-name').textContent = resinName;
+            document.getElementById('disp-part-b-name').textContent = hardenerName;
+
+            // Update stats & step breakdown
+            document.getElementById('stat-fabric-area').textContent = totalFabricArea.toFixed(3);
+            document.getElementById('stat-fabric-weight').textContent = Math.round(totalFabricWeight);
+
+            document.getElementById('stat-aux-area').textContent = totalAuxArea.toFixed(3);
+            document.getElementById('stat-aux-weight').textContent = Math.round(totalAuxWeight);
+
+            document.getElementById('step-reinforcement-weight').textContent = Math.round(totalFabricWeight);
+            document.getElementById('step-resin-reinforcement').textContent = Math.round(resinForReinforcement);
+            document.getElementById('step-aux-weight').textContent = Math.round(totalAuxWeight);
+            document.getElementById('step-component-resin').textContent = Math.round(resinForComponent);
+            document.getElementById('step-dead-volume').textContent = Math.round(deadVolume);
+
+            // Final numbers
+            document.getElementById('final-total-resin').textContent = Math.round(totalResin);
+            document.getElementById('mix-part-a').textContent = Math.round(partA);
+            document.getElementById('mix-part-b').textContent = Math.round(partB);
+
+            // Printable Workshop Card
+            document.getElementById('label-resin-system').textContent = `${resinName} / ${hardenerName}`;
+            document.getElementById('label-total-weight').textContent = Math.round(totalResin);
+            document.getElementById('label-part-a').textContent = Math.round(partA);
+            document.getElementById('label-part-b').textContent = Math.round(partB);
+            document.getElementById('label-max-tg').textContent = document.getElementById('info-max-tg').textContent;
+            document.getElementById('label-pot-life').textContent = document.getElementById('info-pot-life').textContent;
+        }
+
+        function copyRecipeToClipboard() {
+            const resinName = document.getElementById('input-resin-name').value || 'Pryskyřice A';
+            const hardenerName = document.getElementById('input-hardener-name').value || 'Tužidlo B';
+            const total = document.getElementById('final-total-resin').textContent;
+            const partA = document.getElementById('mix-part-a').textContent;
+            const partB = document.getElementById('mix-part-b').textContent;
+
+            const text = `INFUSION RESIN RECIPE\nSystém: ${resinName} / ${hardenerName}\nCelkem epoxidu: ${total} g\n------------------------\nSložka A (Pryskyřice): ${partA} g\nSložka B (Tužidlo): ${partB} g`;
+
+            const dummy = document.createElement("textarea");
+            document.body.appendChild(dummy);
+            dummy.value = text;
+            dummy.select();
+            document.execCommand("copy");
+            document.body.removeChild(dummy);
+
+            showToast('Receptura byla zkopírována do schránky!');
+        }
+    </script>
+</body>
+</html>
